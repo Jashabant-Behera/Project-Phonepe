@@ -38,8 +38,7 @@ Project_Phonepe/
 │       ├── aggregated/             # State-level aggregated data
 │       ├── map/                    # District-level hover data
 │       └── top/                    # Top entities (states, districts, pincodes)
-│
-└── create_table.sql                # MySQL database schema creation script
+
 ```
 
 ---
@@ -417,3 +416,4 @@ def get_custom_metric(self, year=None):
 
 
 ---
+
