@@ -12,7 +12,6 @@ Built with Python, Streamlit, Pandas, SQLAlchemy, and Plotly Express, this dashb
 Project_Phonepe/
 │
 ├── app.py                          # Main Streamlit application entry point
-├── config.py                       # Database connection configuration using SQLAlchemy
 ├── requirements.txt                # Python package dependencies
 ├── .env                            # Environment variables (DB credentials)
 ├── .gitignore                      # Git ignore rules
@@ -29,15 +28,17 @@ Project_Phonepe/
 │   │   ├── etl_map.py              # ETL pipeline for district-level map data
 │   │   └── etl_top.py              # ETL pipeline for top-level state/district/pincode data
 │   │
-│   ├── visualization.py            # Plotly visualization functions (maps, charts, graphs)
-│   └── icon/
-│       └── favicon.ico             # Application favicon
+│   ├── icon/
+│   │   └── favicon.ico             # Application favicon
+│   │
+│   ├── config.py                   # Database connection configuration using SQLAlchemy
+│   └── visualization.py            # Plotly visualization functions (maps, charts, graphs)
 │
-├── pulse/
-│   └── data/                       # PhonePe Pulse JSON data files
-│       ├── aggregated/             # State-level aggregated data
-│       ├── map/                    # District-level hover data
-│       └── top/                    # Top entities (states, districts, pincodes)
+└── pulse/
+    └── data/                       # PhonePe Pulse JSON data files
+        ├── aggregated/             # State-level aggregated data
+        ├── map/                    # District-level hover data
+        └── top/                    # Top entities (states, districts, pincodes)
 
 ```
 
@@ -416,4 +417,5 @@ def get_custom_metric(self, year=None):
 
 
 ---
+
 
