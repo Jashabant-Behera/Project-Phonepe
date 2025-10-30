@@ -12,17 +12,17 @@ def fetch_table_data(table_name, year=None, quarter=None):
         raise ValueError(f"Invalid table name: {table_name}")
     
     query = f"SELECT * FROM {table_name}"
-    keys = []
-    values = []
+    filters = []
+    params = []
     if year is not None:
-        keys.append("year = %s")
-        values.append(year)
+        filters.append("year = %s")
+        params.append(year)
     if quarter is not None:
-        keys.append("quarter = %s")
-        values.append(quarter)
-    if keys:
-        query += " WHERE " + " AND ".join(keys)
-    return pd.read_sql(query, engine, values=tuple(values))
+        filters.append("quarter = %s")
+        params.append(quarter)
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    return pd.read_sql(query, engine, params=tuple(params))
 
 
 # Aggregate tables

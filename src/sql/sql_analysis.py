@@ -11,18 +11,18 @@ class PhonePeAnalytics:
     
     def get_executive_summary(self, year=None, quarter=None):
         """Get executive summary metrics"""
-        keys = []
-        values = []
+        filters = []
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        where_clause = " WHERE " + " AND ".join(keys) if keys else ""
-        values_tuple = tuple(values) if values else None
+        where_clause = " WHERE " + " AND ".join(filters) if filters else ""
+        params_tuple = tuple(params) if params else None
         
         # Transactions - Use COALESCE to handle NULL
         trans_query = f"""
@@ -54,9 +54,9 @@ class PhonePeAnalytics:
             {where_clause}
         """
         
-        trans_df = pd.read_sql(trans_query, self.engine, values=values_tuple)
-        user_df = pd.read_sql(user_query, self.engine, values=values_tuple)
-        ins_df = pd.read_sql(ins_query, self.engine, values=values_tuple)
+        trans_df = pd.read_sql(trans_query, self.engine, params=params_tuple)
+        user_df = pd.read_sql(user_query, self.engine, params=params_tuple)
+        ins_df = pd.read_sql(ins_query, self.engine, params=params_tuple)
         
         # Combine all metrics
         summary = {
@@ -75,23 +75,23 @@ class PhonePeAnalytics:
             SELECT state, SUM(trans_amount) as trans_amount, SUM(trans_count) as trans_count
             FROM aggr_transaction
         """
-        keys = []
-        values = []
+        filters = []
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        if keys:
-            query += " WHERE " + " AND ".join(keys)
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
         
         query += f" GROUP BY state ORDER BY trans_amount DESC LIMIT {limit}"
-
-        return pd.read_sql(query, self.engine, values=tuple(values) if values else None)
-
+        
+        return pd.read_sql(query, self.engine, params=tuple(params) if params else None)
+    
     def get_transaction_type_distribution(self, year=None, quarter=None):
         """Get distribution of transaction types"""
         query = """
@@ -101,22 +101,22 @@ class PhonePeAnalytics:
                    AVG(trans_amount/trans_count) as avg_transaction_value
             FROM aggr_transaction
         """
-        keys = []
-        values = []
+        filters = []
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        if keys:
-            query += " WHERE " + " AND ".join(keys)
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
         
         query += " GROUP BY trans_type ORDER BY trans_amount DESC"
         
-        return pd.read_sql(query, self.engine, values=tuple(values) if values else None)
+        return pd.read_sql(query, self.engine, params=tuple(params) if params else None)
     
     def get_quarterly_trends(self, year):
         """Get quarterly transaction trends for a specific year"""
@@ -132,7 +132,7 @@ class PhonePeAnalytics:
             ORDER BY quarter
         """
         
-        return pd.read_sql(query, self.engine, values=(year,))
+        return pd.read_sql(query, self.engine, params=(year,))
 
     def get_top_districts_by_transaction(self, state=None, year=None, limit=10):
         """Get top districts by transaction amount"""
@@ -144,22 +144,22 @@ class PhonePeAnalytics:
                 SUM(trans_count) as trans_count
             FROM map_transaction
         """
-        keys = []
-        values = []
+        filters = []
+        params = []
         
         if state:
-            keys.append("state = %s")
-            values.append(state)
+            filters.append("state = %s")
+            params.append(state)
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         
-        if keys:
-            query += " WHERE " + " AND ".join(keys)
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
         
         query += f" GROUP BY state, district ORDER BY trans_amount DESC LIMIT {limit}"
         
-        return pd.read_sql(query, self.engine, values=tuple(values) if values else None)
+        return pd.read_sql(query, self.engine, params=tuple(params) if params else None)
 
     # ============ USER ANALYTICS ============
     
@@ -173,22 +173,22 @@ class PhonePeAnalytics:
                 AVG(app_opens/registered_user) as avg_opens_per_user
             FROM aggr_user
         """
-        keys = []
-        values = []
+        filters = []
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        if keys:
-            query += " WHERE " + " AND ".join(keys)
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
         
         query += " GROUP BY state ORDER BY total_users DESC"
         
-        return pd.read_sql(query, self.engine, values=tuple(values) if values else None)
+        return pd.read_sql(query, self.engine, params=tuple(params) if params else None)
 
     def get_device_brand_popularity(self, year=None):
         """Get most popular device brands"""
@@ -199,17 +199,17 @@ class PhonePeAnalytics:
                 AVG(device_percentage) as avg_percentage
             FROM aggr_user
         """
-        keys = ["device_brand != ''"]
-        values = []
+        filters = ["device_brand != ''"]
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         
-        query += " WHERE " + " AND ".join(keys)
+        query += " WHERE " + " AND ".join(filters)
         query += " GROUP BY device_brand ORDER BY total_devices DESC LIMIT 15"
         
-        return pd.read_sql(query, self.engine, values=tuple(values) if values else None)
+        return pd.read_sql(query, self.engine, params=tuple(params) if params else None)
     
     def get_user_growth_rate(self):
         """Calculate user growth rate over years"""
@@ -238,39 +238,39 @@ class PhonePeAnalytics:
                 AVG(insurance_amount/insurance_count) as avg_policy_value
             FROM aggr_insurance
         """
-        keys = []
-        values = []
+        filters = []
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        if keys:
-            query += " WHERE " + " AND ".join(keys)
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
         
         query += " GROUP BY state ORDER BY insur_amount DESC"
         
-        return pd.read_sql(query, self.engine, values=tuple(values) if values else None)
+        return pd.read_sql(query, self.engine, params=tuple(params) if params else None)
 
         # ============ FETCH RAW DATA ============
 
     def get_top_transaction_districts_wise_data(self, year=None, quarter=None):
         """Get district-wise transaction data from top_transaction table"""
-        keys = ["district != '-- Missing Data --'"]
-        values = []
+        filters = ["district != '-- Missing Data --'"]
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        where_clause = " WHERE " + " AND ".join(keys)
-        values_tuple = tuple(values) if values else None
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
         
         query = f"""
             SELECT 
@@ -287,22 +287,22 @@ class PhonePeAnalytics:
             ORDER BY year DESC, quarter DESC, total_trans_amount DESC
         """
         
-        return pd.read_sql(query, self.engine, values=values_tuple)
+        return pd.read_sql(query, self.engine, params=params_tuple)
 
     def get_top_transaction_pincode_wise_data(self, year=None, quarter=None):
         """Get pincode-wise transaction data from top_transaction table"""
-        keys = ["pincode != '-- Missing Data --'"]
-        values = []
+        filters = ["pincode != '-- Missing Data --'"]
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        where_clause = " WHERE " + " AND ".join(keys)
-        values_tuple = tuple(values) if values else None
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
         
         query = f"""
             SELECT 
@@ -319,22 +319,22 @@ class PhonePeAnalytics:
             ORDER BY year DESC, quarter DESC, total_trans_amount DESC
         """
         
-        return pd.read_sql(query, self.engine, values=values_tuple)
+        return pd.read_sql(query, self.engine, params=params_tuple)
 
     def get_top_user_districts_wise_data(self, year=None, quarter=None):
         """Get district-wise user data from top_user table"""
-        keys = ["district != '-- Missing Data --'"]
-        values = []
+        filters = ["district != '-- Missing Data --'"]
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        where_clause = " WHERE " + " AND ".join(keys)
-        values_tuple = tuple(values) if values else None
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
         
         query = f"""
             SELECT 
@@ -349,22 +349,22 @@ class PhonePeAnalytics:
             ORDER BY year DESC, quarter DESC, total_registered_users DESC
         """
         
-        return pd.read_sql(query, self.engine, values=values_tuple)
+        return pd.read_sql(query, self.engine, params=params_tuple)
 
     def get_top_user_pincode_wise_data(self, year=None, quarter=None):
         """Get pincode-wise user data from top_user table"""
-        keys = ["pincode != '-- Missing Data --'"]
-        values = []
+        filters = ["pincode != '-- Missing Data --'"]
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        where_clause = " WHERE " + " AND ".join(keys)
-        values_tuple = tuple(values) if values else None
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
         
         query = f"""
             SELECT 
@@ -379,22 +379,22 @@ class PhonePeAnalytics:
             ORDER BY year DESC, quarter DESC, total_registered_users DESC
         """
         
-        return pd.read_sql(query, self.engine, values=values_tuple)
+        return pd.read_sql(query, self.engine, params=params_tuple)
 
     def get_top_insurance_districts_wise_data(self, year=None, quarter=None):
         """Get district-wise insurance data from top_insurance table"""
-        keys = ["district != '-- Missing Data --'"]
-        values = []
+        filters = ["district != '-- Missing Data --'"]
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        where_clause = " WHERE " + " AND ".join(keys)
-        values_tuple = tuple(values) if values else None
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
         
         query = f"""
             SELECT 
@@ -411,22 +411,22 @@ class PhonePeAnalytics:
             ORDER BY year DESC, quarter DESC, total_insurance_amount DESC
         """
         
-        return pd.read_sql(query, self.engine, values=values_tuple)
+        return pd.read_sql(query, self.engine, params=params_tuple)
 
     def get_top_insurance_pincode_wise_data(self, year=None, quarter=None):
         """Get pincode-wise insurance data from top_insurance table"""
-        keys = ["pincode != '-- Missing Data --'"]
-        values = []
+        filters = ["pincode != '-- Missing Data --'"]
+        params = []
         
         if year:
-            keys.append("year = %s")
-            values.append(year)
+            filters.append("year = %s")
+            params.append(year)
         if quarter:
-            keys.append("quarter = %s")
-            values.append(quarter)
+            filters.append("quarter = %s")
+            params.append(quarter)
         
-        where_clause = " WHERE " + " AND ".join(keys)
-        values_tuple = tuple(values) if values else None
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
         
         query = f"""
             SELECT 
@@ -443,7 +443,7 @@ class PhonePeAnalytics:
             ORDER BY year DESC, quarter DESC, total_insurance_amount DESC
         """
         
-        return pd.read_sql(query, self.engine, values=values_tuple)   
+        return pd.read_sql(query, self.engine, params=params_tuple)   
      
     # ============ INSIGHTS ANALYTICS ============
 
