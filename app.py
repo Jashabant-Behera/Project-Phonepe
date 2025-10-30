@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
-from src.sql.sql_queries import (
-    get_aggr_transaction, get_aggr_user, get_aggr_insurance,
-    get_map_transaction, get_map_user, get_map_insurance,
-    get_top_transaction, get_top_user, get_top_insurance
-)
+from src.sql.sql_queries import *
 from src.sql.sql_analysis import PhonePeAnalytics
 from src.visualization import *
 
@@ -416,12 +412,15 @@ st.markdown('<h1 class="main-title">Project PhonePe Pulse</h1>', unsafe_allow_ht
 st.markdown('<p class="subtitle">Explore India\'s Digital Payment Trends -  Powered by Data Analytics</p>', unsafe_allow_html=True)
 
 # Sidebar filters
-with st.sidebar:
-    st.markdown("### Filters")
-    
+
+st.markdown("### Filters")
+col1, col2 = st.columns(2)
+
+with col1:
     year_options = ["All", 2018, 2019, 2020, 2021, 2022]
     selected_year = st.selectbox(" Select Year", year_options, index=len(year_options)-1)
-    
+
+with col2:
     quarter_options = ["All", 1, 2, 3, 4]
     selected_quarter = st.selectbox(" Select Quarter", quarter_options)
     
@@ -471,7 +470,7 @@ with tabs[0]:
             st.markdown(f'''
                 <div class="metric-card">
                     <div class="metric-label">Total Transactions</div>
-                    <div class="metric-value">{trans_count:.2f} Cr</div>
+                    <div class="metric-value">₹ {trans_count:.2f} Cr</div>
                 </div>
             ''', unsafe_allow_html=True)
         
@@ -535,6 +534,7 @@ with tabs[0]:
 
     # Top performing states
     st.markdown("### Top Performing States")
+    st.markdown('<p class="subtitle">Top 10 Aggregated Transaction Table</p>', unsafe_allow_html=True)
     top_states_df = analytics.get_top_states_by_transaction_amount(year_val, quarter_val, limit=10)
     
     col1, col2 = st.columns([2, 1])
@@ -555,6 +555,278 @@ with tabs[0]:
             )
     else:
         st.info("No transaction data available for the selected period.")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============ INDIA GEOGRAPHIC HEATMAP ============
+
+    st.markdown('<h2 class="section-header">India Geographic Heatmap</h2>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">Explore state-wise, district-wise, or pincode-wise metrics on an interactive map</p>', unsafe_allow_html=True)
+    
+    # Independent filters for heatmap
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        heatmap_year_options = [2018, 2019, 2020, 2021, 2022]
+        heatmap_year = st.selectbox("Year", heatmap_year_options, index=len(heatmap_year_options)-1, key="heatmap_year")
+    
+    with col2:
+        heatmap_quarter_options = [1, 2, 3, 4]
+        heatmap_quarter = st.selectbox("Quarter", heatmap_quarter_options, index=0, key="heatmap_quarter")
+    
+    with col3:
+        heatmap_data_type = st.selectbox("Data Type", ["Transactions", "Users", "Insurance"], key="heatmap_data_type")
+    
+    with col4:
+        # Category options based on data type
+        if heatmap_data_type == "Transactions":
+            category_options = ["All Categories", "Recharge & bill payments", "Peer-to-peer payments", "Merchant payments", "Financial Services", "Others"]
+        else:
+            category_options = ["All Categories"]
+        
+        heatmap_category = st.selectbox("Category", category_options, key="heatmap_category")
+    
+    with col5:
+        heatmap_data_level = st.selectbox("Level", ["State", "District", "Pincode"])
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Fetch data based on filters
+    try:
+        if heatmap_data_level == "State":
+            if heatmap_data_type == "Transactions":
+                heatmap_df = get_aggr_transaction(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    if heatmap_category != "All Categories":
+                        heatmap_df = heatmap_df[heatmap_df['trans_type'] == heatmap_category]
+                    
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'trans_amount': 'sum',
+                        'trans_count': 'sum'
+                    })
+                    heatmap_data.rename(columns={'trans_amount': 'value', 'trans_count': 'count'}, inplace=True)
+                    metric_name = "Transaction Amount"
+                    metric_unit = "₹ Cr"
+                    count_label = "Transactions"
+                
+            elif heatmap_data_type == "Users":
+                heatmap_df = get_aggr_user(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'registered_user': 'sum',
+                        'app_opens': 'sum'
+                    })
+                    heatmap_data.rename(columns={'registered_user': 'value', 'app_opens': 'count'}, inplace=True)
+                    metric_name = "Registered Users"
+                    metric_unit = "Cr"
+                    count_label = "App Opens"
+            
+            else:  # Insurance
+                heatmap_df = get_aggr_insurance(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    if heatmap_category != "All Categories":
+                        heatmap_df = heatmap_df[heatmap_df['insurance_type'] == heatmap_category]
+                    
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'insurance_amount': 'sum',
+                        'insurance_count': 'sum'
+                    })
+                    heatmap_data.rename(columns={'insurance_amount': 'value', 'insurance_count': 'count'}, inplace=True)
+                    metric_name = "Insurance Amount"
+                    metric_unit = "₹ Cr"
+                    count_label = "Policies"
+        
+        elif heatmap_data_level == "District":
+            # Use map data for district level
+            if heatmap_data_type == "Transactions":
+                heatmap_df = get_map_transaction(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    if heatmap_category != "All Categories":
+                        heatmap_df = heatmap_df[heatmap_df['trans_type'] == heatmap_category]
+                    
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'trans_amount': 'sum',
+                        'trans_count': 'sum'
+                    })
+                    heatmap_data.rename(columns={'trans_amount': 'value', 'trans_count': 'count'}, inplace=True)
+                    metric_name = "Transaction Amount"
+                    metric_unit = "₹ Cr"
+                    count_label = "Transactions"
+            
+            elif heatmap_data_type == "Users":
+                heatmap_df = get_map_user(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'registered_user': 'sum',
+                        'app_opens': 'sum'
+                    })
+                    heatmap_data.rename(columns={'registered_user': 'value', 'app_opens': 'count'}, inplace=True)
+                    metric_name = "Registered Users"
+                    metric_unit = "Cr"
+                    count_label = "App Opens"
+            
+            else:  # Insurance
+                heatmap_df = get_map_insurance(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    if heatmap_category != "All Categories":
+                        heatmap_df = heatmap_df[heatmap_df['insurance_type'] == heatmap_category]
+                    
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'insurance_amount': 'sum',
+                        'insurance_count': 'sum'
+                    })
+                    heatmap_data.rename(columns={'insurance_amount': 'value', 'insurance_count': 'count'}, inplace=True)
+                    metric_name = "Insurance Amount"
+                    metric_unit = "₹ Cr"
+                    count_label = "Policies"
+        
+        else:  # Pincode level
+            # Use top data for pincode level, aggregate to state
+            if heatmap_data_type == "Transactions":
+                heatmap_df = analytics.get_top_transaction_pincode_wise_data(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    if heatmap_category != "All Categories":
+                        heatmap_df = heatmap_df[heatmap_df['trans_type'] == heatmap_category]
+                    
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'total_trans_amount': 'sum',
+                        'total_trans_count': 'sum'
+                    })
+                    heatmap_data.rename(columns={'total_trans_amount': 'value', 'total_trans_count': 'count'}, inplace=True)
+                    metric_name = "Transaction Amount"
+                    metric_unit = "₹ Cr"
+                    count_label = "Transactions"
+            
+            elif heatmap_data_type == "Users":
+                heatmap_df = analytics.get_top_user_pincode_wise_data(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'total_registered_users': 'sum'
+                    })
+                    heatmap_data.rename(columns={'total_registered_users': 'value'}, inplace=True)
+                    heatmap_data['count'] = 0  # No count for users at pincode level
+                    metric_name = "Registered Users"
+                    metric_unit = "Cr"
+                    count_label = "Users"
+            
+            else:  # Insurance
+                heatmap_df = analytics.get_top_insurance_pincode_wise_data(heatmap_year, heatmap_quarter)
+                if not heatmap_df.empty:
+                    if heatmap_category != "All Categories":
+                        heatmap_df = heatmap_df[heatmap_df['insurance_type'] == heatmap_category]
+                    
+                    heatmap_data = heatmap_df.groupby('state', as_index=False).agg({
+                        'total_insurance_amount': 'sum',
+                        'total_insurance_count': 'sum'
+                    })
+                    heatmap_data.rename(columns={'total_insurance_amount': 'value', 'total_insurance_count': 'count'}, inplace=True)
+                    metric_name = "Insurance Amount"
+                    metric_unit = "₹ Cr"
+                    count_label = "Policies"
+        
+        # Display heatmap and summary cards
+        if not heatmap_data.empty:
+            # Map state names
+            heatmap_data = map_state_names(heatmap_data.copy())
+            
+            # Calculate summary metrics
+            total_value = heatmap_data['value'].sum()
+            avg_value = heatmap_data['value'].mean()
+            top_state = heatmap_data.loc[heatmap_data['value'].idxmax(), 'state'] if len(heatmap_data) > 0 else "N/A"
+            top_state_value = heatmap_data['value'].max() if len(heatmap_data) > 0 else 0
+            total_count = heatmap_data['count'].sum() if 'count' in heatmap_data.columns else 0
+            num_regions = len(heatmap_data)
+            
+            # Convert to crores for display
+            total_value_cr = total_value / 10000000
+            avg_value_cr = avg_value / 10000000
+            top_state_value_cr = top_state_value / 10000000
+            total_count_cr = total_count / 10000000 if total_count > 10000000 else total_count
+            
+            # Two-column layout
+            col1, col2 = st.columns([2.5, 1])
+            
+            with col1:
+                # Create choropleth map
+                fig = plot_india_heatmap(heatmap_data, metric_name, metric_unit, heatmap_year, heatmap_quarter, heatmap_data_level)
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Summary Card 1: Total Value
+                if metric_unit == "₹ Cr":
+                    st.markdown(f'''
+                        <div class="metric-card">
+                            <div class="metric-label">Total {metric_name}</div>
+                            <div class="metric-value">{metric_unit} {total_value_cr:.2f}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'''
+                        <div class="metric-card">
+                            <div class="metric-label">Total {metric_name}</div>
+                            <div class="metric-value">{total_value_cr:.2f} {metric_unit}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Summary Card 2: Average Value
+                if metric_unit == "₹ Cr":
+                    st.markdown(f'''
+                        <div class="metric-card">
+                            <div class="metric-label">Average {metric_name}</div>
+                            <div class="metric-value">{metric_unit} {avg_value_cr:.2f}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'''
+                        <div class="metric-card">
+                            <div class="metric-label">Average {metric_name}</div>
+                            <div class="metric-value">{avg_value_cr:.2f} {metric_unit}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Summary Card 3: Top State
+                st.markdown(f'''
+                    <div class="metric-card">
+                        <div class="metric-label">Top Performing State</div>
+                        <div class="metric-value" style="font-size: 1.3rem;">{top_state}</div>
+                        <div class="metric-label" style="margin-top: 8px;">{metric_unit} {top_state_value_cr:.2f}</div>
+                    </div>
+                ''', unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Summary Card 4: Count metric
+                if total_count > 0:
+                    count_display = f"{total_count_cr:.2f} Cr" if total_count > 10000000 else f"{total_count:,.0f}"
+                    st.markdown(f'''
+                        <div class="metric-card">
+                            <div class="metric-label">Total {count_label}</div>
+                            <div class="metric-value">{count_display}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'''
+                        <div class="metric-card">
+                            <div class="metric-label">Active Regions</div>
+                            <div class="metric-value">{num_regions}</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+        
+        else:
+            st.warning(f"No data available for {heatmap_data_type} at {heatmap_data_level} level for Year {heatmap_year}, Quarter {heatmap_quarter}")
+    
+    except Exception as e:
+        st.error(f"Error loading heatmap data or Data is not present in the database")
+        st.info("Please check your data filters and try again.")
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
 
 # ==================== TRANSACTIONS TAB ====================
 with tabs[1]:
@@ -562,6 +834,7 @@ with tabs[1]:
     
     # Transaction type distribution
     st.markdown("### Transaction Type Distribution")
+    st.markdown('<p class="subtitle">Aggregated Transaction Distribution</p>', unsafe_allow_html=True)
     trans_type_df = analytics.get_transaction_type_distribution(year_val, quarter_val)
     
     if not trans_type_df.empty:
@@ -578,6 +851,7 @@ with tabs[1]:
     # Quarterly trends
     if year_val:
         st.markdown("### Quarterly Trends")
+        st.markdown('<p class="subtitle">Quarterly Aggregated Transaction</p>', unsafe_allow_html=True)
         quarterly_df = analytics.get_quarterly_trends(year_val)
         
         if not quarterly_df.empty:
@@ -595,6 +869,7 @@ with tabs[1]:
     
     # Top districts
     st.markdown("### Top Districts")
+    st.markdown('<p class="subtitle">Top Districts from Map Transaction</p>', unsafe_allow_html=True)
     selected_state = st.selectbox("Select State for District Analysis", 
                                    ["All"] + list(top_states['state'].unique()) if not top_states.empty else ["All"])
     
@@ -622,6 +897,7 @@ with tabs[2]:
     
     # User engagement metrics
     st.markdown("### User Engagement")
+    st.markdown('<p class="subtitle">Aggeregated User Engagement</p>', unsafe_allow_html=True)
     engagement_df = analytics.get_user_engagement_metrics(year_val, quarter_val)
     
     if not engagement_df.empty:
@@ -660,6 +936,7 @@ with tabs[2]:
     
     # Device brands
     st.markdown("### Device Brand Analysis")
+    st.markdown('<p class="subtitle">Aggeregated User Devices</p>', unsafe_allow_html=True)
     device_df = analytics.get_device_brand_popularity(year_val)
     
     if not device_df.empty:
@@ -674,6 +951,7 @@ with tabs[2]:
     
     # User growth
     st.markdown("### User Growth Trend")
+    st.markdown('<p class="subtitle">Aggeregated User Growth</p>', unsafe_allow_html=True)
     growth_df = analytics.get_user_growth_rate()
     
     if not growth_df.empty:
@@ -683,6 +961,7 @@ with tabs[2]:
 # ==================== INSURANCE TAB ====================
 with tabs[3]:
     st.markdown('<h2 class="section-header">Insurance Analytics</h2>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">Aggeregated Insurance Adoption</p>', unsafe_allow_html=True)
     
     # Insurance metrics
     insurance_df = analytics.get_insurance_adoption_by_state(year_val, quarter_val)
@@ -728,9 +1007,9 @@ with tabs[3]:
 with tabs[4]:
     st.markdown('<h2 class="section-header">Raw Data Explorer</h2>', unsafe_allow_html=True)
     
-    st.info("Explore raw data from database tables using analysis.py functions")
+    st.info("Explore raw data from database tables")
 
-    col1, col2, col3 = st.columns([2,2,1])
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         data_category = st.selectbox(
@@ -745,114 +1024,126 @@ with tabs[4]:
         )
 
     with col3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        submit_button = st.button("Load Data", use_container_width=True)
+        data_level = None
+        if data_category == "Top Level Data":
 
-    if submit_button:
+            data_level = st.selectbox(
+                "Select Data Level",
+                ["Master Data", "District Level", "Pincode Level"]
+            )
     
-        if data_category == "Aggregated Data":
-            # data_type = st.selectbox("Select Type", ["Transactions", "Users", "Insurance"])
-            
-            if data_type == "Transactions":
-                df = get_aggr_transaction(year_val, quarter_val)
-                st.markdown("### Aggregated Transaction Data")
-            elif data_type == "Users":
-                df = get_aggr_user(year_val, quarter_val)
-                st.markdown("### Aggregated User Data")
-            else:
-                df = get_aggr_insurance(year_val, quarter_val)
-                st.markdown("### Aggregated Insurance Data")
-        
-        elif data_category == "Map Level Data":
-            # data_type = st.selectbox("Select Type", ["Transactions", "Users", "Insurance"])
-            
-            if data_type == "Transactions":
-                df = get_map_transaction(year_val, quarter_val)
-                st.markdown("### Map Transaction Data")
-            elif data_type == "Users":
-                df = get_map_user(year_val, quarter_val)
-                st.markdown("### Map User Data")
-            else:
-                df = get_map_insurance(year_val, quarter_val)
-                st.markdown("### Map Insurance Data")
-        
-        else:  # Top Level Data
-            # data_type = st.selectbox("Select Type", ["Transactions", "Users", "Insurance"])
-            
+    if data_category == "Aggregated Data":
+        if data_type == "Transactions":
+            df = get_aggr_transaction(year_val, quarter_val)
+            st.markdown("### Aggregated Transaction Data")
+        elif data_type == "Users":
+            df = get_aggr_user(year_val, quarter_val)
+            st.markdown("### Aggregated User Data")
+        else:
+            df = get_aggr_insurance(year_val, quarter_val)
+            st.markdown("### Aggregated Insurance Data")
+    
+    elif data_category == "Map Level Data":
+        if data_type == "Transactions":
+            df = get_map_transaction(year_val, quarter_val)
+            st.markdown("### Map Transaction Data")
+        elif data_type == "Users":
+            df = get_map_user(year_val, quarter_val)
+            st.markdown("### Map User Data")
+        else:
+            df = get_map_insurance(year_val, quarter_val)
+            st.markdown("### Map Insurance Data")
+    
+    else:  # Top Level Data
+        if data_level == "Master Data":
             if data_type == "Transactions":
                 df = get_top_transaction(year_val, quarter_val)
-                st.markdown("### Top Transaction Data")
+                st.markdown("### Top Transaction Data - Master Level")
             elif data_type == "Users":
                 df = get_top_user(year_val, quarter_val)
-                st.markdown("### Top User Data")
+                st.markdown("### Top User Data - Master Level")
             else:
                 df = get_top_insurance(year_val, quarter_val)
-                st.markdown("### Top Insurance Data")
+                st.markdown("### Top Insurance Data - Master Level")
+
+        elif data_level == "District Level":
+            if data_type == "Transactions":
+                df = analytics.get_top_transaction_districts_wise_data(year_val, quarter_val)
+                st.markdown("### Top Transaction Data - District Level")
+            elif data_type == "Users":
+                df = analytics.get_top_user_districts_wise_data(year_val, quarter_val)
+                st.markdown("### Top User Data - District Level")
+            else:
+                df = analytics.get_top_insurance_districts_wise_data(year_val, quarter_val)
+                st.markdown("### Top Insurance Data - District Level")
         
-        if not df.empty:
-            # Show stats
-            col1, col2 = st.columns(2)
-            with col1:
+        else:  # Pincode Level
+            if data_type == "Transactions":
+                df = analytics.get_top_transaction_pincode_wise_data(year_val, quarter_val)
+                st.markdown("### Top Transaction Data - Pincode Level")
+            elif data_type == "Users":
+                df = analytics.get_top_user_pincode_wise_data(year_val, quarter_val)
+                st.markdown("### Top User Data - Pincode Level")
+            else:
+                df = analytics.get_top_insurance_pincode_wise_data(year_val, quarter_val)
+                st.markdown("### Top Insurance Data - Pincode Level")
+    
+    if not df.empty:
+        # Show stats
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f'''
+                <div class="metric-card">
+                    <div class="metric-label">Total Records</div>
+                    <div class="metric-value">{len(df):,}</div>
+                </div>
+            ''', unsafe_allow_html=True)
+
+        with col2:
+            st.markdown(f'''
+                <div class="metric-card">
+                    <div class="metric-label">Total Columns</div>
+                    <div class="metric-value">{len(df.columns)}</div>
+                </div>
+            ''', unsafe_allow_html=True)
+
+        with col3:
+            # Show additional metric based on data type
+            if data_type == "Transactions" and 'total_trans_amount' in df.columns:
+                total_amount = df['total_trans_amount'].sum() / 10000000
                 st.markdown(f'''
                     <div class="metric-card">
-                        <div class="metric-label">Total Records</div>
-                        <div class="metric-value">{f"{len(df):}"}</div>
+                        <div class="metric-label">Total Amount</div>
+                        <div class="metric-value">₹ {total_amount:.2f} Cr</div>
                     </div>
                 ''', unsafe_allow_html=True)
-
-            with col2:
+            elif data_type == "Users" and 'total_registered_users' in df.columns:
+                total_users = df['total_registered_users'].sum() / 10000000
                 st.markdown(f'''
                     <div class="metric-card">
-                        <div class="metric-label">Total Columns</div>
-                        <div class="metric-value">{len(df.columns)}</div>
+                        <div class="metric-label">Total Users</div>
+                        <div class="metric-value">{total_users:.2f} Cr</div>
                     </div>
                 ''', unsafe_allow_html=True)
-            
-            # Show data
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.dataframe(df, use_container_width=True, height=500)
-
-        else:
-            st.warning("No data available for selected filters.")
-
-        st.markdown("<br>", unsafe_allow_html=True)
+            elif data_type == "Insurance" and 'total_insurance_amount' in df.columns:
+                total_ins = df['total_insurance_amount'].sum() / 10000000
+                st.markdown(f'''
+                    <div class="metric-card">
+                        <div class="metric-label">Total Insurance</div>
+                        <div class="metric-value">₹ {total_ins:.2f} Cr</div>
+                    </div>
+                ''', unsafe_allow_html=True)
+        
+        # Show data
+        st.markdown("<br>", unsafe_allow_html=True)        
+        st.dataframe(df, use_container_width=True, height=500)
 
     else:
+        st.warning("No data available for selected filters.")
 
-        df = get_aggr_transaction(year_val, quarter_val)
-        st.markdown("### Aggregated Transation Data")
-
-        if not df.empty:
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.markdown(f'''
-                    <div class="metric-card">
-                        <div class="metric-label">Total Records</div>
-                        <div class="metric-value">{f"{len(df):,}"}</div>
-                    </div>
-                ''', unsafe_allow_html=True)
-
-            with col2:
-                st.markdown(f'''
-                    <div class="metric-card">
-                        <div class="metric-label">Total Columns</div>
-                        <div class="metric-value">{len(df.columns)}</div>
-                    </div>
-                ''', unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        st.dataframe(df, use_container_width= True, height= 400)
-
-        if not df.select_dtypes(include=["number"]).empty:
-            st.markdown("### Stastical Summary")
-            st.dataframe(df.describe(), use_container_width=True)
-
-        else:
-            st.warning("No Data Available")
-
-# ==================== INSIGHTS TAB ====================
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ==================== INSIGHTS TAB ====================
 with tabs[5]:
     st.markdown('<h2 class="section-header">Key Insights & Recommendations</h2>', unsafe_allow_html=True)
     

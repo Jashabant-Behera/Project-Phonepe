@@ -63,6 +63,10 @@ for state in states:
 
 
 df_trans = pd.DataFrame(trans_data)
+
+df_trans['district'] = df_trans['district'].replace(['', None, pd.NA], '-- Missing Data --')
+df_trans['pincode'] = df_trans['pincode'].replace(['', None, pd.NA], '-- Missing Data --')
+
 df_trans.to_sql('top_transaction', con=engine, if_exists='append', index=False)
 print("Transaction data loaded successfully.")
 
@@ -88,7 +92,7 @@ for state in os.listdir(user_path):
                 for record in data['data'].get('states') or []:
                     user_data['year'].append(int(year))
                     user_data['quarter'].append(quarter)
-                    user_data['state'].append(record.get('entityName', ''))
+                    user_data['state'].append(state)
                     user_data['district'].append('')
                     user_data['pincode'].append('')
                     user_data['registered_user'].append(record.get('registeredUsers', 0))
@@ -97,7 +101,7 @@ for state in os.listdir(user_path):
                     user_data['year'].append(int(year))
                     user_data['quarter'].append(quarter)
                     user_data['state'].append(state)
-                    user_data['district'].append(record.get('entityName', ''))
+                    user_data['district'].append(record.get('name', ''))
                     user_data['pincode'].append('')
                     user_data['registered_user'].append(record.get('registeredUsers', 0))
 
@@ -106,11 +110,15 @@ for state in os.listdir(user_path):
                     user_data['quarter'].append(quarter)
                     user_data['state'].append(state)
                     user_data['district'].append('')
-                    user_data['pincode'].append(record.get('entityName', ''))
+                    user_data['pincode'].append(record.get('name', ''))
                     user_data['registered_user'].append(record.get('registeredUsers', 0))
 
 
 df_user = pd.DataFrame(user_data)
+
+df_user['district'] = df_user['district'].replace(['', None, pd.NA], '-- Missing Data --')
+df_user['pincode'] = df_user['pincode'].replace(['', None, pd.NA], '-- Missing Data --')
+
 df_user.to_sql('top_user', con=engine, if_exists='append', index=False)
 print("User data loaded successfully.")
 
@@ -167,5 +175,9 @@ for state in os.listdir(insurance_path):
                     insurance_data['insurance_amount'].append(metric.get('amount', 0.0))
 
 df_insurance = pd.DataFrame(insurance_data)
+
+df_insurance['district'] = df_insurance['district'].replace(['', None, pd.NA], '-- Missing Data --')
+df_insurance['pincode'] = df_insurance['pincode'].replace(['', None, pd.NA], '-- Missing Data --')
+
 df_insurance.to_sql('top_insurance', con=engine, if_exists='append', index=False)
 print("Insurance data loaded successfully.")

@@ -47,7 +47,7 @@ def map_state_names(df):
         df['state'] = df['state'].map(STATE_MAPPING).fillna(df['state'])
     return df
 
-# ============ CHOROPLETH MAPS ============
+# ============ INDIA MAPS ============
 
 def plot_india_choropleth(df, value_col, title, color_scale='Viridis'):
     """Create India map with state-wise data"""
@@ -71,6 +71,56 @@ def plot_india_choropleth(df, value_col, title, color_scale='Viridis'):
         font=dict(color='white'),
         title_font_size=20,
         height=850
+    )
+    
+    return fig
+
+def plot_india_heatmap(heatmap_data, metric_name, metric_unit, year, quarter, data_level):
+    """Plot heatmap of India with given metric"""
+    heatmap_data = map_state_names(heatmap_data.copy())
+    
+    fig = px.choropleth(
+        heatmap_data,
+        geojson="https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson",
+        featureidkey='properties.ST_NM',
+        locations='state',
+        color='value',
+        hover_name='state',
+        hover_data={'value':':.2f', 'state':False},
+        color_continuous_scale='Purples',
+        labels={'value': metric_name}
+    )
+    
+    fig.update_geos(
+        fitbounds="locations",
+        visible=False,
+        showcountries=False,
+        showsubunits=False,
+        showland=False
+        )
+    
+    fig.update_layout(
+        title={
+            'text': f'{metric_name} - {data_level}<br><sub>Year: {year} | Quarter: Q{quarter}</sub>',
+            'font': {'size': 20},
+            'x': 0.5,
+            'xanchor': 'center',
+            'y': 0.95,
+            'yanchor': 'top'
+        },
+        plot_bgcolor='rgba(10, 20, 30, 0.7)',
+        paper_bgcolor='rgba(0,0,0,0.5)',
+        font=dict(color='white'),
+        title_font_size=18,
+        height=600,
+        margin=dict(l=0, r=0, t=80, b=0),
+        coloraxis_colorbar=dict(
+            title=metric_name,
+            thickness=15,
+            len=0.7,
+            bgcolor='rgba(0,0,0,0)',
+            tickfont=dict(color='white')
+        )
     )
     
     return fig

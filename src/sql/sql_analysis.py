@@ -255,6 +255,196 @@ class PhonePeAnalytics:
         
         return pd.read_sql(query, self.engine, params=tuple(params) if params else None)
 
+        # ============ FETCH RAW DATA ============
+
+    def get_top_transaction_districts_wise_data(self, year=None, quarter=None):
+        """Get district-wise transaction data from top_transaction table"""
+        filters = ["district != '-- Missing Data --'"]
+        params = []
+        
+        if year:
+            filters.append("year = %s")
+            params.append(year)
+        if quarter:
+            filters.append("quarter = %s")
+            params.append(quarter)
+        
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
+        
+        query = f"""
+            SELECT 
+                year,
+                quarter,
+                state,
+                district,
+                trans_type,
+                COALESCE(SUM(trans_count), 0) as total_trans_count,
+                COALESCE(SUM(trans_amount), 0) as total_trans_amount
+            FROM top_transaction
+            {where_clause}
+            GROUP BY year, quarter, state, district, trans_type
+            ORDER BY year DESC, quarter DESC, total_trans_amount DESC
+        """
+        
+        return pd.read_sql(query, self.engine, params=params_tuple)
+
+    def get_top_transaction_pincode_wise_data(self, year=None, quarter=None):
+        """Get pincode-wise transaction data from top_transaction table"""
+        filters = ["pincode != '-- Missing Data --'"]
+        params = []
+        
+        if year:
+            filters.append("year = %s")
+            params.append(year)
+        if quarter:
+            filters.append("quarter = %s")
+            params.append(quarter)
+        
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
+        
+        query = f"""
+            SELECT 
+                year,
+                quarter,
+                state,
+                pincode,
+                trans_type,
+                COALESCE(SUM(trans_count), 0) as total_trans_count,
+                COALESCE(SUM(trans_amount), 0) as total_trans_amount
+            FROM top_transaction
+            {where_clause}
+            GROUP BY year, quarter, state, pincode, trans_type
+            ORDER BY year DESC, quarter DESC, total_trans_amount DESC
+        """
+        
+        return pd.read_sql(query, self.engine, params=params_tuple)
+
+    def get_top_user_districts_wise_data(self, year=None, quarter=None):
+        """Get district-wise user data from top_user table"""
+        filters = ["district != '-- Missing Data --'"]
+        params = []
+        
+        if year:
+            filters.append("year = %s")
+            params.append(year)
+        if quarter:
+            filters.append("quarter = %s")
+            params.append(quarter)
+        
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
+        
+        query = f"""
+            SELECT 
+                year,
+                quarter,
+                state,
+                district,
+                COALESCE(SUM(registered_user), 0) as total_registered_users
+            FROM top_user
+            {where_clause}
+            GROUP BY year, quarter, state, district
+            ORDER BY year DESC, quarter DESC, total_registered_users DESC
+        """
+        
+        return pd.read_sql(query, self.engine, params=params_tuple)
+
+    def get_top_user_pincode_wise_data(self, year=None, quarter=None):
+        """Get pincode-wise user data from top_user table"""
+        filters = ["pincode != '-- Missing Data --'"]
+        params = []
+        
+        if year:
+            filters.append("year = %s")
+            params.append(year)
+        if quarter:
+            filters.append("quarter = %s")
+            params.append(quarter)
+        
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
+        
+        query = f"""
+            SELECT 
+                year,
+                quarter,
+                state,
+                pincode,
+                COALESCE(SUM(registered_user), 0) as total_registered_users
+            FROM top_user
+            {where_clause}
+            GROUP BY year, quarter, state, pincode
+            ORDER BY year DESC, quarter DESC, total_registered_users DESC
+        """
+        
+        return pd.read_sql(query, self.engine, params=params_tuple)
+
+    def get_top_insurance_districts_wise_data(self, year=None, quarter=None):
+        """Get district-wise insurance data from top_insurance table"""
+        filters = ["district != '-- Missing Data --'"]
+        params = []
+        
+        if year:
+            filters.append("year = %s")
+            params.append(year)
+        if quarter:
+            filters.append("quarter = %s")
+            params.append(quarter)
+        
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
+        
+        query = f"""
+            SELECT 
+                year,
+                quarter,
+                state,
+                district,
+                insurance_type,
+                COALESCE(SUM(insurance_count), 0) as total_insurance_count,
+                COALESCE(SUM(insurance_amount), 0) as total_insurance_amount
+            FROM top_insurance
+            {where_clause}
+            GROUP BY year, quarter, state, district, insurance_type
+            ORDER BY year DESC, quarter DESC, total_insurance_amount DESC
+        """
+        
+        return pd.read_sql(query, self.engine, params=params_tuple)
+
+    def get_top_insurance_pincode_wise_data(self, year=None, quarter=None):
+        """Get pincode-wise insurance data from top_insurance table"""
+        filters = ["pincode != '-- Missing Data --'"]
+        params = []
+        
+        if year:
+            filters.append("year = %s")
+            params.append(year)
+        if quarter:
+            filters.append("quarter = %s")
+            params.append(quarter)
+        
+        where_clause = " WHERE " + " AND ".join(filters)
+        params_tuple = tuple(params) if params else None
+        
+        query = f"""
+            SELECT 
+                year,
+                quarter,
+                state,
+                pincode,
+                insurance_type,
+                COALESCE(SUM(insurance_count), 0) as total_insurance_count,
+                COALESCE(SUM(insurance_amount), 0) as total_insurance_amount
+            FROM top_insurance
+            {where_clause}
+            GROUP BY year, quarter, state, pincode, insurance_type
+            ORDER BY year DESC, quarter DESC, total_insurance_amount DESC
+        """
+        
+        return pd.read_sql(query, self.engine, params=params_tuple)   
+     
     # ============ INSIGHTS ANALYTICS ============
 
     def get_year_over_year_growth(self):
