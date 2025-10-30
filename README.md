@@ -67,7 +67,7 @@ Project_Phonepe/
 3. **Activate the virtual environment**
    - Windows:
      ```bash
-     env\Scripts\activate
+     Scripts\activate
      ```
    - macOS/Linux:
      ```bash
