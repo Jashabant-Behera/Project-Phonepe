@@ -193,16 +193,7 @@ This project requires PhonePe Pulse data which is not included in the repository
    git clone https://github.com/PhonePe/pulse.git
 ```
 
-2. Copy the data folder:
-```bash
-   # Windows
-   xcopy pulse\data .\pulse\data /E /I
-   
-   # macOS/Linux
-   cp -r pulse/data ./pulse/data
-```
-
-3. Verify structure:
+2. Verify structure:
 ```
    pulse/
    └── data/
@@ -417,5 +408,6 @@ def get_custom_metric(self, year=None):
 
 
 ---
+
 
 
