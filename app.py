@@ -409,7 +409,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # Header
 st.markdown('<h1 class="main-title">Project PhonePe Pulse</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Explore India\'s Digital Payment Trends -  Powered by Data Analytics</p>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Explore India\'s Digital Payment Trends</p>', unsafe_allow_html=True)
 
 # Sidebar filters
 
